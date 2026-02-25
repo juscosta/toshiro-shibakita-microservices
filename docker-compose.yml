@@ -1,0 +1,45 @@
+﻿services:
+  mysql:
+    image: mysql:8.0
+    container_name: ts_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 
+      MYSQL_DATABASE: 
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./banco.sql:/docker-entrypoint-initdb.d/01-banco.sql:ro
+    networks: [tsnet]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: ./app
+    environment:
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASS: 
+      DB_NAME: 
+    networks: [tsnet]
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:alpine
+    container_name: ts_nginx
+    ports:
+      - "4500:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [tsnet]
+    depends_on:
+      - app
+
+networks:
+  tsnet:
+
+volumes:
+  mysql_data:
